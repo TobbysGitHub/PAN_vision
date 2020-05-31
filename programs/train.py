@@ -42,12 +42,12 @@ def dream_image(imgs, model):
         target.backward()
         optim.step()
 
-    imgs = imgs.detach().numpy()
+    imgs = imgs.detach().cpu().numpy()
     return imgs
 
 
 def visualize(model):
-    imgs = torch.rand(size=(model.num_units, model.size, model.size))
+    imgs = torch.rand(size=(model.num_units, model.size, model.size)).to(device)
     imgs = dream_image(imgs, model)
 
     fig, a = plt.subplots(math.ceil(model.num_units / 8), 8)
