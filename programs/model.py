@@ -6,7 +6,7 @@ from .modules import Hippocampus
 
 NUM_UNITS = 64
 MASK_P = 0.2
-SIZE = 32
+SIZE = 16
 
 
 class Model(nn.Module):

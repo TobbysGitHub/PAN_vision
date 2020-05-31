@@ -12,8 +12,10 @@ from programs import Model
 
 DATA_DIR = '../data/npimage32.npy'
 BATCH_SIZE = 128
-EPOCHS = 80
+EPOCHS = 40
 LR = 0.1
+
+CTR = False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -106,15 +108,17 @@ def cal_loss(y1, y2, w, mask, t):
     state.writer.add_histogram(tag='l2neg', values=l_2_neg, global_step=state.steps)
     state.writer.add_scalar(tag='loss', scalar_value=loss_all.item(), global_step=state.steps)
 
-    l_1_neg = torch.mean(torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(1)), dim=1)  # s_b * n_u
-    l_2_neg = torch.mean(torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(1)), dim=1)
+    l_1_neg_ctr = torch.mean(torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(1)), dim=1)  # s_b * n_u
+    l_2_neg_ctr = torch.mean(torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(1)), dim=1)
 
-    loss_ = -torch.log(l_1_2 / l_1_neg) - torch.log(l_1_2 / l_2_neg)
-    loss_all = loss_.mean() - loss_all
+    loss_ctr = -torch.log(l_1_2 / l_1_neg_ctr) - torch.log(l_1_2 / l_2_neg_ctr)
+    loss_all_ctr = loss_ctr.mean()
+    loss_ctr = loss_ctr.masked_fill(~mask, 0)
+    loss_ctr = loss_ctr.mean()
 
-    state.writer.add_scalar(tag='loss_', scalar_value=loss_all.item(), global_step=state.steps)
+    state.writer.add_scalar(tag='loss_', scalar_value=(loss_all_ctr - loss_all).item(), global_step=state.steps)
 
-    return loss
+    return loss_ctr if CTR else loss
 
 
 def flip_grad(optimizer):
