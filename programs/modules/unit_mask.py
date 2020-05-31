@@ -17,7 +17,7 @@ class UnitMask(nn.Module):
         mask = torch.rand_like(x) < self.drop_p
         mask_num = torch.sum(mask, dim=1).unsqueeze(-1)
         x = x.masked_fill(mask, 0)
-        x = x * (torch.Tensor([num_unit], device=x.device).float() / mask_num.float())
+        x = x * (torch.Tensor([num_unit]).to(x.device).float() / mask_num.float())
 
         return x, mask
 
