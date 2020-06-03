@@ -12,7 +12,7 @@ from programs import Model
 
 DATA_DIR = '../data/npimage32.npy'
 BATCH_SIZE = 128
-EPOCHS = 40
+EPOCHS = 60
 LR = 0.1
 
 CTR = False
@@ -78,7 +78,7 @@ def prepare_data_loader():
 def adjust_learning_rate(optimizers):
     """Sets the learning rate to the initial LR decayed by 10 every 10 epochs"""
     epoch = state.epoch
-    lr = LR * (0.1 ** (epoch // 10))
+    lr = LR * (0.1 ** (epoch // 40))
     for optimizer in optimizers:
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
@@ -93,9 +93,9 @@ def cal_loss(y1, y2, w, mask, t):
     :param t:   n_u
     """
 
-    l_1_2 = torch.exp(-torch.abs(y1 - y2).clamp_max(1))  # s_b * n_u
-    l_1_neg = torch.sum(w * torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(1)), dim=1)  # s_b * n_u
-    l_2_neg = torch.sum(w * torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(1)), dim=1)
+    l_1_2 = torch.exp(-torch.abs(y1 - y2).clamp_max(5))  # s_b * n_u
+    l_1_neg = torch.sum(w * torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(5)), dim=1)  # s_b * n_u
+    l_2_neg = torch.sum(w * torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(5)), dim=1)
 
     loss = -torch.log(l_1_2 / l_1_neg) - torch.log(l_1_2 / l_2_neg)
     loss_all = loss.mean()
@@ -108,8 +108,8 @@ def cal_loss(y1, y2, w, mask, t):
     state.writer.add_histogram(tag='l2neg', values=l_2_neg, global_step=state.steps)
     state.writer.add_scalar(tag='loss', scalar_value=loss_all.item(), global_step=state.steps)
 
-    l_1_neg_ctr = torch.mean(torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(1)), dim=1)  # s_b * n_u
-    l_2_neg_ctr = torch.mean(torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(1)), dim=1)
+    l_1_neg_ctr = torch.mean(torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(5)), dim=1)  # s_b * n_u
+    l_2_neg_ctr = torch.mean(torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(5)), dim=1)
 
     loss_ctr = -torch.log(l_1_2 / l_1_neg_ctr) - torch.log(l_1_2 / l_2_neg_ctr)
     loss_all_ctr = loss_ctr.mean()
