@@ -1,3 +1,4 @@
+import os
 import torch
 from matplotlib.axes import Axes
 from torch.utils.data import TensorDataset, DataLoader
@@ -10,9 +11,9 @@ import math
 
 from programs import Model
 
-DATA_DIR = '../data/npimage32.npy'
+DATA_DIR = os.path.join('data', 'npimage16.npy')
 BATCH_SIZE = 128
-EPOCHS = 60
+EPOCHS = 200
 LR = 0.1
 
 CTR = False
@@ -49,11 +50,12 @@ def dream_image(imgs, model):
 
 
 def visualize(model):
-    imgs = torch.rand(size=(model.num_units, model.size, model.size)).to(device)
-    imgs = dream_image(imgs, model)
+    imgs = np.zeros((model.num_units, model.size, model.size))
+    for i in range(100):
+        iran = torch.rand(size=(model.num_units, model.size, model.size)).to(device)
+        imgs = imgs + dream_image(iran, model)
 
-    fig, a = plt.subplots(math.ceil(model.num_units / 8), 8)
-
+    fig, a = plt.subplots(math.ceil(model.num_units / 8), 8, figsize=(4, 4))
     for i, img in enumerate(imgs):
         axis: Axes = a[i // 8][i % 8]
         axis.get_xaxis().set_visible(False)
@@ -76,9 +78,9 @@ def prepare_data_loader():
 
 
 def adjust_learning_rate(optimizers):
-    """Sets the learning rate to the initial LR decayed by 10 every 10 epochs"""
+    """Sets the learning rate to the initial LR decayed by 10 every 180 epochs"""
     epoch = state.epoch
-    lr = LR * (0.1 ** (epoch // 40))
+    lr = LR * (0.1 ** (epoch // 180))
     for optimizer in optimizers:
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr
@@ -102,11 +104,11 @@ def cal_loss(y1, y2, w, mask, t):
     loss = loss.masked_fill(~mask, 0)
     loss = loss.mean()
 
-    state.writer.add_histogram(tag='y1', values=y1, global_step=state.steps)
-    state.writer.add_histogram(tag='l12', values=l_1_2, global_step=state.steps)
-    state.writer.add_histogram(tag='l1neg', values=l_1_neg, global_step=state.steps)
-    state.writer.add_histogram(tag='l2neg', values=l_2_neg, global_step=state.steps)
-    state.writer.add_scalar(tag='loss', scalar_value=loss_all.item(), global_step=state.steps)
+    # state.writer.add_histogram(tag='y1', values=y1, global_step=state.steps)
+    # state.writer.add_histogram(tag='l12', values=l_1_2, global_step=state.steps)
+    # state.writer.add_histogram(tag='l1neg', values=l_1_neg, global_step=state.steps)
+    # state.writer.add_histogram(tag='l2neg', values=l_2_neg, global_step=state.steps)
+    # state.writer.add_scalar(tag='loss', scalar_value=loss_all.item(), global_step=state.steps)
 
     l_1_neg_ctr = torch.mean(torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(5)), dim=1)  # s_b * n_u
     l_2_neg_ctr = torch.mean(torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(5)), dim=1)
@@ -116,7 +118,7 @@ def cal_loss(y1, y2, w, mask, t):
     loss_ctr = loss_ctr.masked_fill(~mask, 0)
     loss_ctr = loss_ctr.mean()
 
-    state.writer.add_scalar(tag='loss_', scalar_value=(loss_all_ctr - loss_all).item(), global_step=state.steps)
+    # state.writer.add_scalar(tag='loss_', scalar_value=(loss_all_ctr - loss_all).item(), global_step=state.steps)
 
     return loss_ctr if CTR else loss
 
@@ -151,13 +153,13 @@ def train_epoch(model, data_loader, optimizers, ):
 
 
 def train(model, data_loader, optimizers):
-    visualize(model, )
+    # visualize(model, )
     for epoch in tqdm(range(EPOCHS)):
         state.epoch = epoch
         adjust_learning_rate(optimizers)
         train_epoch(model, data_loader, optimizers, )
         # visualize(model, )
-        torch.save(model.state_dict(), f='model.state_dict.' + str(epoch))
+        torch.save(model.state_dict(), f=os.path.join('state_dicts', 'model.state_dict.' + str(epoch)))
 
 
 def main():
@@ -176,4 +178,5 @@ def main():
 
 
 if __name__ == '__main__':
+    os.chdir('..')
     main()
