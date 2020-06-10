@@ -29,6 +29,27 @@ class State:
         self.steps = 0
         self.writer = SummaryWriter()
 
+    @staticmethod
+    def log(s):
+        # sample log
+        return s % int(np.sqrt(s)) == 0
+
+    def add_scalar(self, tag, scalar_value):
+        if not self.log(self.steps):
+            return
+        try:
+            self.writer.add_scalar(tag=tag, scalar_value=scalar_value, global_step=self.steps)
+        except Exception():
+            pass
+
+    def add_histogram(self, tag, values):
+        if not self.log(self.steps):
+            return
+        try:
+            self.writer.add_histogram(tag=tag, values=values, global_step=self.steps)
+        except Exception():
+            pass
+
 
 def dream_image(imgs, model):
     imgs.requires_grad_(True)
@@ -104,11 +125,11 @@ def cal_loss(y1, y2, w, mask, t):
     loss = loss.masked_fill(~mask, 0)
     loss = loss.mean()
 
-    # state.writer.add_histogram(tag='y1', values=y1, global_step=state.steps)
-    # state.writer.add_histogram(tag='l12', values=l_1_2, global_step=state.steps)
-    # state.writer.add_histogram(tag='l1neg', values=l_1_neg, global_step=state.steps)
-    # state.writer.add_histogram(tag='l2neg', values=l_2_neg, global_step=state.steps)
-    # state.writer.add_scalar(tag='loss', scalar_value=loss_all.item(), global_step=state.steps)
+    state.add_histogram(tag='y1', values=y1)
+    state.add_histogram(tag='l12', values=l_1_2)
+    state.add_histogram(tag='l1neg', values=l_1_neg)
+    state.add_histogram(tag='l2neg', values=l_2_neg)
+    state.add_scalar(tag='loss', scalar_value=loss_all.item())
 
     l_1_neg_ctr = torch.mean(torch.exp(-torch.abs(y1.unsqueeze(1) - y1).clamp_max(5)), dim=1)  # s_b * n_u
     l_2_neg_ctr = torch.mean(torch.exp(-torch.abs(y2.unsqueeze(1) - y1).clamp_max(5)), dim=1)
@@ -118,7 +139,7 @@ def cal_loss(y1, y2, w, mask, t):
     loss_ctr = loss_ctr.masked_fill(~mask, 0)
     loss_ctr = loss_ctr.mean()
 
-    # state.writer.add_scalar(tag='loss_', scalar_value=(loss_all_ctr - loss_all).item(), global_step=state.steps)
+    state.add_scalar(tag='loss_', scalar_value=(loss_all_ctr - loss_all).item())
 
     return loss_ctr if CTR else loss
 
