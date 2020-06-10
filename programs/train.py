@@ -32,14 +32,14 @@ class State:
     @staticmethod
     def log(s):
         # sample log
-        return s % int(np.sqrt(s)) == 0
+        return s % int(np.sqrt(s) + 1) == 0
 
     def add_scalar(self, tag, scalar_value):
         if not self.log(self.steps):
             return
         try:
             self.writer.add_scalar(tag=tag, scalar_value=scalar_value, global_step=self.steps)
-        except Exception():
+        except ValueError():
             pass
 
     def add_histogram(self, tag, values):
@@ -47,7 +47,7 @@ class State:
             return
         try:
             self.writer.add_histogram(tag=tag, values=values, global_step=self.steps)
-        except Exception():
+        except ValueError():
             pass
 
 
